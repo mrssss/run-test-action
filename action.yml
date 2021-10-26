@@ -1,0 +1,114 @@
+on:
+  workflow_call:
+    inputs:
+      ec2-image-id:
+        type: string
+        required: false
+        default: ami-038c7551f4646121c
+      ec2-instance-type:
+        type: string
+        required: false
+        default: c4.4xlarge
+      ec2-subnet-id:
+        type: string
+        required: false
+        default: subnet-7f670619
+      ec2-security-group-id:
+        type: string
+        required: false
+        default: sg-0b08bfc9785de435e
+      dockerfile:
+        required: true
+        type: string
+      context-directory:
+        required: true
+        type: string
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      AWS_REGION:
+        required: true
+      GH_PERSONAL_ACCESS_TOKEN:
+        required: true
+
+jobs:
+  start-runner:
+    name: Start self-hosted EC2 runner
+    runs-on: ubuntu-latest
+    outputs:
+      label: ${{ steps.start-ec2-runner.outputs.label }}
+      ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Start EC2 runner
+        id: start-ec2-runner
+        uses: machulav/ec2-github-runner@v2
+        with:
+          mode: start
+          github-token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
+          ec2-image-id: ${{ inputs.ec2-image-id }}
+          ec2-instance-type: ${{ inputs.ec2-instance-type }}
+          subnet-id: ${{ inputs.ec2-subnet-id }}
+          security-group-id: ${{ inputs.ec2-security-group-id }}
+          aws-resource-tags: > # optional, requires additional permissions
+            [
+              {"Key": "Name", "Value": "ec2-github-runner-${{ github.sha }}"},
+              {"Key": "GitHubRepository", "Value": "${{ github.repository }}"}
+            ]
+  run-test:
+    name: Do the job on the runner
+    needs: start-runner # required to start the main job when the runner is ready
+    runs-on: ${{ needs.start-runner.outputs.label }} # run the job on the newly created runner
+    steps:
+      - name: Configure AWS credentials from Test account
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Prepare directory
+        run: mkdir /test_output /artifacts
+      - name: Build the Docker image
+        run: docker build -file ${{ inputs.dockerfile }} -tag tp-test:${{ github.sha }} ${{ inputs.context-directory}}
+      - name: Run test
+        run: |
+          docker run -t -v /test_output:/test_output -v /artifacts:/artifacts --name test-runner tp-test:${{ github.sha }}
+          cp `docker inspect --format='{{.LogPath}}' test-runner` /test_output/docker.log
+          docker rm test-runner
+      - name: Copy files to S3 with the AWS CLI
+        if: ${{ always() }}
+        run: |
+          aws s3 sync /test_output s3://${{ secrets.AWS_S3_BUCKET }}/reports/${{ github.sha }}/${{ github.job }}/test_output || true
+          aws s3 sync /artifacts s3://${{ secrets.AWS_S3_BUCKET }}/reports/${{ github.sha }}/${{ github.job }}/artifacts || true
+  stop-runner:
+    name: Stop self-hosted EC2 runner
+    needs:
+      - start-runner # required to get output from the start-runner job
+      - fast-test # required to wait when the main job is done
+    runs-on: ubuntu-latest
+    if: ${{ always() }} # required to stop the runner even if the error happened in the previous jobs
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Stop EC2 runner
+        uses: machulav/ec2-github-runner@v2
+        with:
+          mode: stop
+          github-token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
+          label: ${{ needs.start-runner.outputs.label }}
+          ec2-instance-id: ${{ needs.start-runner.outputs.ec2-instance-id }}
