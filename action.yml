@@ -68,6 +68,7 @@ jobs:
               {"Key": "Name", "Value": "ec2-github-runner-${{ github.sha }}"},
               {"Key": "GitHubRepository", "Value": "${{ github.repository }}"}
             ]
+
   run-test:
     name: Do the job on the runner
     needs: start-runner # required to start the main job when the runner is ready
@@ -95,13 +96,14 @@ jobs:
       - name: Copy files to S3 with the AWS CLI
         if: ${{ always() }}
         run: |
-          aws s3 sync /test_output s3://${{ secrets.AWS_S3_BUCKET }}/reports/${{ github.sha }}/${{ github.job }}/test_output || true
-          aws s3 sync /artifacts s3://${{ secrets.AWS_S3_BUCKET }}/reports/${{ github.sha }}/${{ github.job }}/artifacts || true
+          [ "`ls -A /test_output`" = "" ] || aws s3 sync /test_output s3://${{ secrets.AWS_S3_BUCKET }}/reports/${{ github.repository }}/${{ github.sha }}/${{ github.job }}/test_output || true
+          [ "`ls -A /artifacts`" = "" ] || aws s3 sync /artifacts s3://${{ secrets.AWS_S3_BUCKET }}/reports/${{ github.repository }}/${{ github.sha }}/${{ github.job }}/artifacts || true
+
   stop-runner:
     name: Stop self-hosted EC2 runner
     needs:
       - start-runner # required to get output from the start-runner job
-      - fast-test # required to wait when the main job is done
+      - run-test # required to wait when the main job is done
     runs-on: ubuntu-latest
     if: ${{ always() }} # required to stop the runner even if the error happened in the previous jobs
     steps:
