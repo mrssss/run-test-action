@@ -71,7 +71,7 @@ jobs:
               {"Key": "GitHubRepository", "Value": "${{ github.repository }}"}
             ]
 
-  run-test:
+  run-dockerfile:
     name: Do the job on the runner
     needs: start-runner # required to start the main job when the runner is ready
     runs-on: ${{ needs.start-runner.outputs.label }} # run the job on the newly created runner
@@ -92,7 +92,7 @@ jobs:
         run: docker build --file ${{ inputs.dockerfile }} --tag tp-test:${{ github.sha }} ${{ inputs.context-directory}}
       - name: Run test
         run: |
-          docker run -t -v /test_output:/test_output -v /artifacts:/artifacts -v `pwd`:/source --name test-runner ${{ inputs.args}} tp-test:${{ github.sha }} ${{ inputs.entrypoint-args }}
+          docker run -t -v /test_output:/test_output -v /artifacts:/artifacts -v `pwd`:/source --name test-runner ${{ inputs.args }} tp-test:${{ github.sha }} ${{ inputs.entrypoint-args }}
       - name: Archive Test Results
         if: ${{ always() }}
         run: |
