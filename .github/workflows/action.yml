@@ -93,6 +93,9 @@ jobs:
       - name: Run test
         run: |
           docker run -t -v /test_output:/test_output -v /artifacts:/artifacts -v `pwd`:/source --name test-runner ${{ inputs.args}} tp-test:${{ github.sha }} ${{ inputs.entrypoint-args }}
+      - name: Archive Test Results
+        if: ${{ always() }}
+        run: |
           cp `docker inspect --format='{{.LogPath}}' test-runner` /test_output/docker.log
           docker rm test-runner
       - name: Copy files to S3 with the AWS CLI
