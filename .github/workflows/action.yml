@@ -90,7 +90,7 @@ jobs:
         run: docker build --file ${{ inputs.dockerfile }} --tag tp-test:${{ github.sha }} ${{ inputs.context-directory}}
       - name: Run test
         run: |
-          docker run -t -v /test_output:/test_output -v /artifacts:/artifacts --name test-runner ${{ inputs.args}} tp-test:${{ github.sha }} ${{ inputs.entrypoint-args }}
+          docker run -t -v /test_output:/test_output -v /artifacts:/artifacts -v `pwd`:/source --name test-runner ${{ inputs.args}} tp-test:${{ github.sha }} ${{ inputs.entrypoint-args }}
           cp `docker inspect --format='{{.LogPath}}' test-runner` /test_output/docker.log
           docker rm test-runner
       - name: Copy files to S3 with the AWS CLI
