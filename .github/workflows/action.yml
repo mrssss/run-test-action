@@ -37,7 +37,7 @@ on:
       AWS_REGION:
         required: true
       AWS_S3_BUCKET:
-        required:true
+        required: true
       GH_PERSONAL_ACCESS_TOKEN:
         required: true
 
