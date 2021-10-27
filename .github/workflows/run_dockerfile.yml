@@ -17,6 +17,10 @@ on:
         type: string
         required: false
         default: sg-0b08bfc9785de435e
+      submodules:
+        type: string
+        required: false
+        default: 'recursive'
       dockerfile:
         required: true
         type: string
@@ -85,7 +89,7 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v2
         with:
-          submodules: 'recursive'
+          submodules: ${{ inputs.submodules }}
       - name: Prepare directory
         run: mkdir /test_output /artifacts
       - name: Build the Docker image
