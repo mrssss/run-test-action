@@ -87,7 +87,7 @@ jobs:
       - name: Prepare directory
         run: mkdir /test_output /artifacts
       - name: Build the Docker image
-        run: docker build -file ${{ inputs.dockerfile }} -tag tp-test:${{ github.sha }} ${{ inputs.context-directory}}
+        run: docker build --file ${{ inputs.dockerfile }} --tag tp-test:${{ github.sha }} ${{ inputs.context-directory}}
       - name: Run test
         run: |
           docker run -t -v /test_output:/test_output -v /artifacts:/artifacts --name test-runner $${{ inputs.args}} tp-test:${{ github.sha }} ${{ inputs.entrypoint-args }}
