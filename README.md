@@ -179,7 +179,7 @@ generate_report
 
 Add a file named test_ec2_on_demand.yml in `.github/workflows` folder
 
-```sh
+```yaml
 # .github/workflows/test_ec2_on_demand.yml
 name: unit test
 on: push
