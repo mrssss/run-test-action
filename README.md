@@ -185,7 +185,7 @@ name: unit test
 on: push
 jobs:
   unit_test:
-    uses: mrssss/run-test-action/.github/workflows/action.yml@main
+    uses: mrssss/run-test-action/.github/workflows/run_dockerfile.yml@main
     with:
       dockerfile: docker/test/unittest/Dockerfile
       context-directory: docker/test/unittest/
