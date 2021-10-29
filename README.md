@@ -22,6 +22,7 @@ Apart from that, this repo provide other two workflows:
 2. Directly run some commands instead of start a container
 
 ## Example
+https://github.com/mrssss/ChickenFeather/tree/new-cmake-frame
 
 To use the workflow in this repo, you need to define a docker image.
 
