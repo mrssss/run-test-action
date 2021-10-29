@@ -49,7 +49,7 @@ GH_PERSONAL_ACCESS_TOKEN
 
 Firstly, put these two file in this `docker/test/unittest/` folder.
 
-```
+```sh
 # docker/test/unittest/Dockerfile
 FROM ubuntu:20.04 
 
@@ -140,7 +140,9 @@ ENTRYPOINT ["/bin/bash", "/run.sh"]
 
 ```
 
-```
+
+
+```sh
 # docker/test/unittest/run.sh
 #!/bin/bash
 
@@ -177,7 +179,7 @@ generate_report
 
 Add a file named test_ec2_on_demand.yml in `.github/workflows` folder
 
-```
+```sh
 # .github/workflows/test_ec2_on_demand.yml
 name: unit test
 on: push
